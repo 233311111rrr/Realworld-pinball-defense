@@ -94,14 +94,17 @@ class SnakeGrid {
     }
 
     /**
-     * 生成新一輪怪物隊列（預先計算總血量成長、寶箱與 Boss）
+     * 從右上角起點 (rightBound, startY) 生成新一輪怪物隊列，依序往左進場
      */
     fun spawnRow(targetRowIndex: Int) {
-        val baseHp = GameConfig.MONSTER_INITIAL_HP * Math.pow(1.0 + GameConfig.MONSTER_HP_ROW_GROWTH_RATE, waveCount.toDouble()).toFloat()
+        val baseHp = GameConfig.MONSTER_INITIAL_HP * Math.pow(1.0 + GameConfig.MONSTER_HP_ROW_GROWTH_RATE, (waveCount - 1).toDouble()).toFloat()
         val isBossWave = (waveCount % GameConfig.BOSS_ROW_INTERVAL == 0)
 
         val count = GameConfig.MONSTERS_PER_ROW
-        val spacing = rowLength / count
+        val spacing = GameConfig.MONSTER_SPACING
+        val activeMonsters = monsters.filter { it.active }
+        val minProgress = activeMonsters.minOfOrNull { it.pathProgress } ?: 0f
+        val leadProgress = if (activeMonsters.isNotEmpty()) minOf(0f, minProgress) - spacing else 0f
 
         for (i in 0 until count) {
             val isBoss = isBossWave && (i == count / 2)
@@ -116,15 +119,8 @@ class SnakeGrid {
             val kind = when {
                 isBoss -> MonsterKind.BOSS
                 isChest -> MonsterKind.CHEST
-                else -> {
-                    val r = Random.nextInt(4)
-                    when (r) {
-                        0 -> MonsterKind.OCTOPUS
-                        1 -> MonsterKind.CYCLOPS
-                        2 -> MonsterKind.DRONE
-                        else -> MonsterKind.CRUISER
-                    }
-                }
+                Random.nextFloat() < 0.22f -> MonsterKind.OCTOPUS
+                else -> MonsterKind.CYCLOPS
             }
 
             val monster = Monster()
@@ -137,9 +133,7 @@ class SnakeGrid {
                 isChest = isChest,
                 isBoss = isBoss
             )
-            val minProgress = monsters.filter { it.active }.minOfOrNull { it.pathProgress } ?: 0f
-            val baseProgress = if (minProgress < 0f) minProgress else 0f
-            monster.pathProgress = baseProgress - ((i + 1) * spacing)
+            monster.pathProgress = leadProgress - (i * spacing)
             monsters.add(monster)
         }
         waveCount++
@@ -151,11 +145,11 @@ class SnakeGrid {
     fun update(dt: Float, isFrozen: Boolean, onReachedEnd: () -> Unit) {
         if (isFrozen) return
 
-        // 檢查第一排存活怪物數量
-        val row0Count = monsters.count { it.active && it.rowIndex == 0 }
-        val halfCapacity = GameConfig.MONSTERS_PER_ROW / 2
+        // 包含正在從右上角進入第 1 排的怪物，確保開局以固定正常速度從右上角往左進場
+        val row0AndEnteringCount = monsters.count { it.active && (it.rowIndex == 0 || it.pathProgress < 0f) }
+        val halfCapacity = (GameConfig.MONSTERS_PER_ROW * GameConfig.CATCH_UP_THRESHOLD_RATIO).toInt()
 
-        if (row0Count <= halfCapacity && !isCatchingUp && !catchUpWaitingTargetRow1Mid) {
+        if (row0AndEnteringCount <= halfCapacity && !isCatchingUp && !catchUpWaitingTargetRow1Mid) {
             isCatchingUp = true
             catchUpWaitingTargetRow1Mid = true
         }
@@ -195,10 +189,11 @@ class SnakeGrid {
             }
         }
 
-        // 維持畫面緊湊度：若蛇隊尾部即將完全進入或場上怪少於4排，持續生成新排排入隊列
-        val minProgress = monsters.filter { it.active }.minOfOrNull { it.pathProgress } ?: 0f
-        val activeCount = monsters.count { it.active }
-        if ((minProgress >= -GameConfig.MONSTER_WIDTH * 2f || activeCount <= GameConfig.MONSTERS_PER_ROW * 3) && activeCount < 60) {
+        // 當目前進場排的尾端已進入右上角起點 (minProgress >= 12f) 或場上全清時，才銜接生成下一排
+        val activeMonsters = monsters.filter { it.active }
+        val minProgress = activeMonsters.minOfOrNull { it.pathProgress } ?: Float.POSITIVE_INFINITY
+        val maxFieldMonsters = GameConfig.MONSTERS_PER_ROW * GameConfig.SNAKE_TOTAL_ROWS
+        if (activeMonsters.isEmpty() || (minProgress >= 12f && activeMonsters.size < maxFieldMonsters)) {
             spawnRow(0)
         }
     }

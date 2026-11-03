@@ -6,20 +6,19 @@ import { SettingsModal } from './components/SettingsModal';
 import { PauseModal } from './components/PauseModal';
 import { UnlockSpeedModal } from './components/UnlockSpeedModal';
 import { GameConfig } from './GameConfig';
-import { Gamepad2, FileCode2, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'PLAY' | 'ANDROID_PROJECT'>('PLAY');
 
-  // 持久化資料 (localStorage)
+  // 持久化資料 (預設對齊參考圖 155552 之 874 金幣與 7,711 最佳紀錄)
   const [coins, setCoins] = useState<number>(() => {
-    const saved = localStorage.getItem('cosmic_coins');
-    return saved ? parseInt(saved, 10) : 500;
+    const saved = localStorage.getItem('cosmic_coins_v2');
+    return saved ? parseInt(saved, 10) : 874;
   });
 
   const [bestScore, setBestScore] = useState<number>(() => {
-    const saved = localStorage.getItem('cosmic_best_score');
-    return saved ? parseInt(saved, 10) : 0;
+    const saved = localStorage.getItem('cosmic_best_score_v2');
+    return saved ? parseInt(saved, 10) : 7711;
   });
 
   const [ballDamageLevel, setBallDamageLevel] = useState<number>(() => {
@@ -33,7 +32,8 @@ export default function App() {
   });
 
   const [is2xUnlocked, setIs2xUnlocked] = useState<boolean>(() => {
-    return localStorage.getItem('cosmic_2x_unlocked') === 'true';
+    const saved = localStorage.getItem('cosmic_2x_unlocked_v2');
+    return saved ? saved === 'true' : true;
   });
 
   const [is5xUnlocked, setIs5xUnlocked] = useState<boolean>(() => {
@@ -56,13 +56,12 @@ export default function App() {
   const [isPauseOpen, setIsPauseOpen] = useState<boolean>(false);
   const [unlockSpeedTarget, setUnlockSpeedTarget] = useState<{ speed: number; cost: number } | null>(null);
 
-  // 儲存狀態至 localStorage
   useEffect(() => {
-    localStorage.setItem('cosmic_coins', coins.toString());
+    localStorage.setItem('cosmic_coins_v2', coins.toString());
   }, [coins]);
 
   useEffect(() => {
-    localStorage.setItem('cosmic_best_score', bestScore.toString());
+    localStorage.setItem('cosmic_best_score_v2', bestScore.toString());
   }, [bestScore]);
 
   useEffect(() => {
@@ -74,7 +73,7 @@ export default function App() {
   }, [luckLevel]);
 
   useEffect(() => {
-    localStorage.setItem('cosmic_2x_unlocked', is2xUnlocked.toString());
+    localStorage.setItem('cosmic_2x_unlocked_v2', is2xUnlocked.toString());
   }, [is2xUnlocked]);
 
   useEffect(() => {
@@ -85,7 +84,6 @@ export default function App() {
     localStorage.setItem('cosmic_revive_tickets', reviveTickets.toString());
   }, [reviveTickets]);
 
-  // 升級球傷害
   const handleUpgradeBallDamage = () => {
     const cost = Math.round(
       GameConfig.UPGRADE_BALL_DMG_BASE_COST * (1 + ballDamageLevel * GameConfig.UPGRADE_BALL_DMG_COST_FACTOR)
@@ -96,7 +94,6 @@ export default function App() {
     }
   };
 
-  // 升級幸運
   const handleUpgradeLuck = () => {
     if (luckLevel >= GameConfig.LUCK_MAX_LEVEL) return;
     const cost = GameConfig.UPGRADE_LUCK_BASE_COST * (luckLevel + 1);
@@ -106,7 +103,6 @@ export default function App() {
     }
   };
 
-  // 解鎖倍速確認
   const handleConfirmUnlockSpeed = () => {
     if (!unlockSpeedTarget) return;
     const { speed, cost } = unlockSpeedTarget;
@@ -119,61 +115,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col w-screen h-screen bg-[#060814] text-slate-100 overflow-hidden font-sans">
-      {/* 頂部導航列 (Top Bar Contract: 3 區域) */}
-      <header className="flex items-center justify-between gap-8 px-6 py-3 border-b border-slate-800/80 bg-slate-950/80 shrink-0 z-20">
-        {/* 區域 1: 品牌標題 */}
-        <div className="flex items-center gap-2 whitespace-nowrap shrink-0">
-          <span className="text-base font-bold tracking-tight text-white">太空彈球防衛戰</span>
-          <span className="text-[11px] text-sky-400 font-mono hidden sm:inline">COSMIC BALL DEFENSE</span>
-        </div>
-
-        {/* 區域 2: 檢視模式切換 */}
-        <nav className="flex items-center gap-1.5 p-1 bg-slate-900 rounded-lg border border-slate-800">
-          <button
-            onClick={() => setActiveTab('PLAY')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'PLAY'
-                ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Gamepad2 className="w-3.5 h-3.5" />
-            <span>即時試玩 (Web Canvas)</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('ANDROID_PROJECT')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'ANDROID_PROJECT'
-                ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <FileCode2 className="w-3.5 h-3.5" />
-            <span>Android 原生工程與 CI/CD</span>
-          </button>
-        </nav>
-
-        {/* 區域 3: 輔助操作按鈕 */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setIsUpgradeOpen(true)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg hover:bg-amber-500/30 transition-colors whitespace-nowrap shrink-0"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>戰力養成</span>
-          </button>
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-1.5 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
-            title="系統設定"
-          >
-            <SettingsIcon className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
-
-      {/* 主體展示區 */}
+    <div className="flex flex-col w-screen h-screen bg-[#090812] text-slate-100 overflow-hidden font-sans">
       <main className="flex-1 relative overflow-hidden flex items-center justify-center">
         {activeTab === 'PLAY' ? (
           <GameCanvas
@@ -194,13 +136,14 @@ export default function App() {
             onRequestUnlockSpeed={(speed, cost) => setUnlockSpeedTarget({ speed, cost })}
             onOpenPause={() => setIsPauseOpen(true)}
             onOpenUpgrades={() => setIsUpgradeOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenAndroidExplorer={() => setActiveTab('ANDROID_PROJECT')}
           />
         ) : (
-          <AndroidProjectExplorer />
+          <AndroidProjectExplorer onBackToGame={() => setActiveTab('PLAY')} />
         )}
       </main>
 
-      {/* 全域彈窗 */}
       <UpgradeDrawer
         isOpen={isUpgradeOpen}
         onClose={() => setIsUpgradeOpen(false)}

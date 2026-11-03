@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
         val tvTitle = TextView(this).apply {
             text = "太空彈球防衛戰"
             textSize = 32f
-            isFakeBoldText = true
+            paint.isFakeBoldText = true
             setTextColor(Color.rgb(248, 250, 252))
             textAlignment = View.TEXT_ALIGNMENT_CENTER
         }

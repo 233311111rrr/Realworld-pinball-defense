@@ -9,6 +9,9 @@ object GameConfig {
     // 1. 畫面與邏輯世界設定
     const val LOGICAL_WIDTH = 1080f
     const val LOGICAL_HEIGHT = 2340f
+    const val TOP_WALL_Y = 215f
+    const val SHIP_Y = 1935f
+    const val BOTTOM_BAR_Y = 2110f
     const val PHYSICS_HZ = 240
     const val FIXED_DELTA_TIME = 1f / PHYSICS_HZ
 
@@ -24,24 +27,25 @@ object GameConfig {
     var BOUNCE_ON_MONSTER = true
     var CONTINUOUS_SHOOT_ON_RELEASE = true
 
-    // 3. 怪物蛇形行軍與生成
-    const val SNAKE_TOTAL_ROWS = 8
-    const val MONSTERS_PER_ROW = 11
-    const val MONSTER_WIDTH = 76f
-    const val MONSTER_HEIGHT = 76f
+    // 3. 怪物蛇形行軍與生成 (10 排緊湊偶數排佈局，右上角進場，右下角終點)
+    const val SNAKE_TOTAL_ROWS = 10
+    const val MONSTERS_PER_ROW = 14
+    const val MONSTER_SPACING = 66f
+    const val MONSTER_WIDTH = 68f
+    const val MONSTER_HEIGHT = 68f
     const val MONSTER_INITIAL_HP = 100f
-    const val MONSTER_HP_ROW_GROWTH_RATE = 0.08f
-    const val MONSTER_BASE_SPEED = 85f
-    const val CHEST_SPAWN_CHANCE = 0.06f
+    const val MONSTER_HP_ROW_GROWTH_RATE = 0.15f
+    const val MONSTER_BASE_SPEED = 115f
+    const val CHEST_SPAWN_CHANCE = 0.03f
     const val CHEST_HP_RATIO = 0.60f
     const val BOSS_ROW_INTERVAL = 10
     const val BOSS_HP_MULTIPLIER = 8.0f
     const val CATCH_UP_THRESHOLD_RATIO = 0.5f
     const val CATCH_UP_SPEED_MULTIPLIER = 2.4f
-    const val SNAKE_ROW_SPACING = 155f
-    const val SNAKE_START_Y = 350f
-    const val SNAKE_LEFT_BOUND = 65f
-    const val SNAKE_RIGHT_BOUND = 1015f
+    const val SNAKE_ROW_SPACING = 120f
+    const val SNAKE_START_Y = 295f
+    const val SNAKE_LEFT_BOUND = 70f
+    const val SNAKE_RIGHT_BOUND = 1010f
 
     // 4. 副武器與技能卡數值
     val SKILL_FIRE_RATE_TIERS = floatArrayOf(0.5f, 1.0f, 1.7f)

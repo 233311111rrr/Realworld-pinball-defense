@@ -32,7 +32,7 @@ class SettingsActivity : AppCompatActivity() {
         val tvTitle = TextView(this).apply {
             text = "⚙️ 系統與畫面設定"
             textSize = 26f
-            isFakeBoldText = true
+            paint.isFakeBoldText = true
             setTextColor(Color.WHITE)
             setPadding(0, 0, 0, 40)
         }

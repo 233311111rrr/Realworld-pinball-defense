@@ -25,7 +25,7 @@ class AboutActivity : AppCompatActivity() {
         val tvTitle = TextView(this).apply {
             text = "ℹ️ 關於與素材授權聲明"
             textSize = 24f
-            isFakeBoldText = true
+            paint.isFakeBoldText = true
             setTextColor(Color.WHITE)
             setPadding(0, 0, 0, 30)
         }

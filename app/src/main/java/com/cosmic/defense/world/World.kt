@@ -24,8 +24,8 @@ class World(
     val skillManager: SkillManager
 ) {
     val shipX = GameConfig.LOGICAL_WIDTH / 2f
-    val shipY = 2050f
-    val bottomBoundaryY = shipY + 40f
+    val shipY = GameConfig.SHIP_Y
+    val bottomBoundaryY = shipY + 75f
 
     var isTouching: Boolean = false
     var touchX: Float = shipX
@@ -396,6 +396,8 @@ class World(
         }
     }
 
+    private data class RaycastHit(val hitX: Float, val hitY: Float, val normX: Float, val normY: Float)
+
     private fun drawAimGuide(canvas: Canvas) {
         var dirX = touchX - shipX
         var dirY = touchY - shipY
@@ -408,24 +410,24 @@ class World(
         aimPath.reset()
         aimPath.moveTo(shipX, shipY - 30f)
 
-        var curX = shipX
-        var curY = shipY - 30f
+        val curX = shipX
+        val curY = shipY - 30f
 
-        val (hitX1, hitY1, normX1, normY1) = raycastWall(curX, curY, nx, ny)
-        aimPath.lineTo(hitX1, hitY1)
+        val hit1 = raycastWall(curX, curY, nx, ny)
+        aimPath.lineTo(hit1.hitX, hit1.hitY)
 
-        if (normX1 != 0f || normY1 != 0f) {
-            val dot = nx * normX1 + ny * normY1
-            nx = nx - 2 * dot * normX1
-            ny = ny - 2 * dot * normY1
-            val (hitX2, hitY2, _, _) = raycastWall(hitX1, hitY1, nx, ny)
-            aimPath.lineTo(hitX2, hitY2)
+        if (hit1.normX != 0f || hit1.normY != 0f) {
+            val dot = nx * hit1.normX + ny * hit1.normY
+            nx = nx - 2 * dot * hit1.normX
+            ny = ny - 2 * dot * hit1.normY
+            val hit2 = raycastWall(hit1.hitX, hit1.hitY, nx, ny)
+            aimPath.lineTo(hit2.hitX, hit2.hitY)
         }
 
         canvas.drawPath(aimPath, aimGuidePaint)
     }
 
-    private fun raycastWall(x: Float, y: Float, dx: Float, dy: Float): FloatArray {
+    private fun raycastWall(x: Float, y: Float, dx: Float, dy: Float): RaycastHit {
         var minT = Float.MAX_VALUE
         var normX = 0f
         var normY = 0f
@@ -447,7 +449,7 @@ class World(
             }
         }
         if (dy < -0.0001f) {
-            val t = (220f - y) / dy
+            val t = (GameConfig.TOP_WALL_Y - y) / dy
             if (t > 0 && t < minT) {
                 minT = t
                 normX = 0f
@@ -456,36 +458,49 @@ class World(
         }
 
         if (minT == Float.MAX_VALUE) minT = 1000f
-        return floatArrayOf(x + dx * minT, y + dy * minT, normX, normY)
+        return RaycastHit(x + dx * minT, y + dy * minT, normX, normY)
     }
 
     private fun drawPlayerShip(canvas: Canvas, animTime: Float) {
-        val shipPath = Path()
-        shipPath.moveTo(shipX, shipY - 50f)
-        shipPath.lineTo(shipX - 44f, shipY + 36f)
-        shipPath.lineTo(shipX, shipY + 16f)
-        shipPath.lineTo(shipX + 44f, shipY + 36f)
-        shipPath.close()
-
-        shipPaint.color = Color.rgb(224, 242, 254)
-        canvas.drawPath(shipPath, shipPaint)
-
-        val flamePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(56, 189, 248)
+        val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(16, 24, 40)
+            style = Paint.Style.STROKE
+            strokeWidth = 6f
         }
-        val flameLen = 18f + Math.sin(animTime * 18.0).toFloat() * 6f
-        canvas.drawCircle(shipX, shipY + 22f + flameLen * 0.5f, 10f, flamePaint)
 
-        flamePaint.color = Color.rgb(14, 165, 233)
-        canvas.drawCircle(shipX, shipY - 8f, 12f, flamePaint)
+        // 噴射尾焰
+        val flameLen = 22f + Math.sin(animTime * 18.0).toFloat() * 8f
+        shipPaint.color = Color.rgb(56, 189, 248)
+        canvas.drawCircle(shipX, shipY + 34f + flameLen * 0.4f, 16f, shipPaint)
+
+        // 左推進艙與右推進艙 (155552 藍白雙瓶火箭造型)
+        canvas.save()
+        canvas.translate(shipX, shipY)
+        canvas.rotate(12f)
+
+        val leftPod = android.graphics.RectF(-38f, -46f, -2f, 36f)
+        shipPaint.color = Color.rgb(96, 165, 250)
+        canvas.drawRoundRect(leftPod, 16f, 16f, shipPaint)
+        canvas.drawRoundRect(leftPod, 16f, 16f, outlinePaint)
+
+        val rightPod = android.graphics.RectF(-8f, -52f, 34f, 40f)
+        shipPaint.color = Color.rgb(59, 130, 246)
+        canvas.drawRoundRect(rightPod, 18f, 18f, shipPaint)
+
+        val whiteBand = android.graphics.RectF(-8f, -20f, 34f, 18f)
+        shipPaint.color = Color.WHITE
+        canvas.drawRect(whiteBand, shipPaint)
+        canvas.drawRoundRect(rightPod, 18f, 18f, outlinePaint)
+
+        canvas.restore()
 
         if (invincibleTimer > 0f) {
             val shieldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.argb(140, 251, 191, 36)
+                color = Color.argb(180, 251, 191, 36)
                 style = Paint.Style.STROKE
                 strokeWidth = 6f
             }
-            canvas.drawCircle(shipX, shipY, 70f, shieldPaint)
+            canvas.drawCircle(shipX, shipY, 74f, shieldPaint)
         }
     }
 }

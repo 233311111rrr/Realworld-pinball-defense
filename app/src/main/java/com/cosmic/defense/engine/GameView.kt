@@ -34,20 +34,29 @@ class GameView(
     private val starX = FloatArray(starCount) { Random.nextFloat() * GameConfig.LOGICAL_WIDTH }
     private val starY = FloatArray(starCount) { Random.nextFloat() * GameConfig.LOGICAL_HEIGHT }
     private val starSpeed = FloatArray(starCount) { Random.nextFloat() * 40f + 15f }
-    private val starRadius = FloatArray(starCount) { Random.nextFloat() * 2.2f + 0.8f }
+    private val starRadius = FloatArray(starCount) { Random.nextFloat() * 2.5f + 0.8f }
     private val starPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
 
     private val hudBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(220, 10, 14, 28)
+        color = Color.rgb(49, 49, 66) // #313142 參考圖 155552 灰紫金屬底色
     }
     private val hudTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
-        textSize = 34f
+        textSize = 36f
         isFakeBoldText = true
     }
+    private val outlineTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
+        textSize = 36f
+        isFakeBoldText = true
+        style = Paint.Style.STROKE
+        strokeWidth = 8f
+        strokeJoin = Paint.Join.ROUND
+    }
     private val subTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.rgb(148, 163, 184)
-        textSize = 28f
+        color = Color.rgb(203, 213, 225)
+        textSize = 24f
+        isFakeBoldText = true
     }
     private val buttonPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val tempRect = RectF()
@@ -120,9 +129,10 @@ class GameView(
         canvas.translate(offsetX, offsetY)
         canvas.scale(scaleXFactor, scaleYFactor)
 
-        canvas.drawColor(Color.rgb(6, 8, 20))
+        // 155552 紫藍星雲深空底色
+        canvas.drawColor(Color.rgb(30, 25, 54))
         for (i in 0 until starCount) {
-            val alpha = (140 + Math.sin((animTime * 3f + i).toDouble()).toFloat() * 90).toInt().coerceIn(50, 255)
+            val alpha = (130 + Math.sin((animTime * 3f + i).toDouble()).toFloat() * 90).toInt().coerceIn(45, 245)
             starPaint.alpha = alpha
             canvas.drawCircle(starX[i], starY[i], starRadius[i], starPaint)
         }
@@ -135,85 +145,123 @@ class GameView(
     }
 
     private fun drawTopHud(canvas: Canvas) {
-        tempRect.set(0f, 0f, GameConfig.LOGICAL_WIDTH, 200f)
+        // 頂部金屬板 (#313142)
+        tempRect.set(0f, 0f, GameConfig.LOGICAL_WIDTH, 215f)
         canvas.drawRect(tempRect, hudBgPaint)
 
-        hudTextPaint.color = Color.rgb(251, 191, 36)
-        canvas.drawText("金幣: ${dataManager.getCoins()}", 40f, 75f, hudTextPaint)
+        // 左側：金幣深色凹槽 + 戰機金幣徽章
+        buttonPaint.color = Color.rgb(26, 27, 36)
+        tempRect.set(88f, 62f, 335f, 134f)
+        canvas.drawRect(tempRect, buttonPaint)
 
+        buttonPaint.color = Color.rgb(250, 204, 21)
+        canvas.drawCircle(86f, 98f, 38f, buttonPaint)
+        buttonPaint.color = Color.rgb(217, 119, 6)
+        canvas.drawCircle(86f, 98f, 28f, buttonPaint)
+
+        hudTextPaint.textAlign = Paint.Align.CENTER
+        hudTextPaint.textSize = 40f
         hudTextPaint.color = Color.WHITE
-        canvas.drawText("分數: ${world.currentScore}", 380f, 75f, hudTextPaint)
+        canvas.drawText("${dataManager.getCoins()}", 216f, 112f, hudTextPaint)
 
-        subTextPaint.color = Color.rgb(148, 163, 184)
-        canvas.drawText("最佳: ${dataManager.getBestScore()}", 700f, 75f, subTextPaint)
+        // 中央：得分標籤 + 大字分數 (厚黑描邊)
+        subTextPaint.textAlign = Paint.Align.CENTER
+        subTextPaint.color = Color.rgb(18, 19, 28)
+        subTextPaint.textSize = 26f
+        canvas.drawText("得分", 510f, 58f, subTextPaint)
 
-        buttonPaint.color = Color.rgb(30, 41, 59)
-        tempRect.set(940f, 35f, 1040f, 95f)
-        canvas.drawRoundRect(tempRect, 12f, 12f, buttonPaint)
-        hudTextPaint.textSize = 28f
-        hudTextPaint.color = Color.WHITE
-        canvas.drawText("暫停", 960f, 76f, hudTextPaint)
-        hudTextPaint.textSize = 34f
+        val scoreStr = String.format("%,d", world.currentScore)
+        outlineTextPaint.textAlign = Paint.Align.CENTER
+        outlineTextPaint.textSize = 58f
+        hudTextPaint.textSize = 58f
+        canvas.drawText(scoreStr, 510f, 122f, outlineTextPaint)
+        canvas.drawText(scoreStr, 510f, 122f, hudTextPaint)
 
+        // 右側：皇冠最佳成績凹槽 + 圓形金屬暫停鈕
+        subTextPaint.color = Color.rgb(250, 204, 21)
+        canvas.drawText("👑 最佳", 805f, 54f, subTextPaint)
+
+        buttonPaint.color = Color.rgb(26, 27, 36)
+        tempRect.set(705f, 64f, 905f, 134f)
+        canvas.drawRect(tempRect, buttonPaint)
+
+        val bestStr = String.format("%,d", dataManager.getBestScore())
+        hudTextPaint.textSize = 38f
+        canvas.drawText(bestStr, 805f, 112f, hudTextPaint)
+
+        // 圓形金屬暫停鈕 (||)
+        buttonPaint.color = Color.rgb(124, 134, 166)
+        canvas.drawCircle(995f, 98f, 44f, buttonPaint)
+        buttonPaint.color = Color.rgb(163, 173, 204)
+        canvas.drawCircle(995f, 98f, 36f, buttonPaint)
+        buttonPaint.color = Color.WHITE
+        canvas.drawRect(981f, 80f, 991f, 116f, buttonPaint)
+        canvas.drawRect(999f, 80f, 1009f, 116f, buttonPaint)
+
+        // 下方緊湊數值列：球傷害、技能傷害、FPS
         val ballDmg = world.skillManager.getEffectiveBallDamage().toInt()
         val ballBonusPct = (world.skillManager.ballDamageBonusRatio * 100).toInt()
         val skillDmg = world.skillManager.getEffectiveLaserDamage().toInt()
         val skillBonusPct = (world.skillManager.skillDamageBonusRatio * 100).toInt()
 
+        subTextPaint.textAlign = Paint.Align.LEFT
+        subTextPaint.textSize = 23f
         subTextPaint.color = Color.rgb(254, 240, 138)
-        canvas.drawText("球 $ballDmg (+$ballBonusPct%)", 40f, 150f, subTextPaint)
+        canvas.drawText("球 $ballDmg (+$ballBonusPct%)", 45f, 188f, subTextPaint)
 
-        subTextPaint.color = Color.rgb(56, 189, 248)
-        canvas.drawText("技能 $skillDmg (+$skillBonusPct%)", 420f, 150f, subTextPaint)
+        subTextPaint.color = Color.rgb(125, 211, 252)
+        canvas.drawText("技能 $skillDmg (+$skillBonusPct%)", 380f, 188f, subTextPaint)
 
         if (dataManager.isShowFps()) {
-            subTextPaint.color = Color.rgb(74, 222, 128)
-            canvas.drawText("FPS: ${gameLoop?.currentFps ?: 60}", 860f, 150f, subTextPaint)
+            subTextPaint.color = Color.rgb(134, 239, 172)
+            canvas.drawText("FPS ${gameLoop?.currentFps ?: 60}", 865f, 188f, subTextPaint)
         }
     }
 
     private fun drawBottomBar(canvas: Canvas) {
-        val barY = 2160f
-        val barHeight = 160f
-
-        tempRect.set(0f, barY, GameConfig.LOGICAL_WIDTH, barY + barHeight)
+        val barY = 2110f
+        tempRect.set(0f, barY, GameConfig.LOGICAL_WIDTH, GameConfig.LOGICAL_HEIGHT)
         canvas.drawRect(tempRect, hudBgPaint)
 
+        // 左側：立體圓形倍速按鈕 (>> x1 / x2 / x5)
         val currentSpeed = (gameLoop?.gameSpeedMultiplier ?: 1f).toInt()
-        buttonPaint.color = Color.rgb(30, 41, 59)
+        buttonPaint.color = Color.rgb(82, 92, 112)
+        canvas.drawCircle(112f, barY + 110f, 68f, buttonPaint)
+        buttonPaint.color = Color.rgb(128, 140, 164)
+        canvas.drawCircle(112f, barY + 102f, 52f, buttonPaint)
 
-        drawSpeedButton(canvas, 40f, barY + 30f, "1x", currentSpeed == 1, unlocked = true)
-        drawSpeedButton(canvas, 130f, barY + 30f, "2x", currentSpeed == 2, unlocked = dataManager.is2xUnlocked())
-        drawSpeedButton(canvas, 220f, barY + 30f, "5x", currentSpeed == 5, unlocked = dataManager.is5xUnlocked())
+        hudTextPaint.textAlign = Paint.Align.CENTER
+        hudTextPaint.textSize = 30f
+        hudTextPaint.color = Color.WHITE
+        canvas.drawText(">> x$currentSpeed", 112f, barY + 112f, hudTextPaint)
 
-        drawItemButton(canvas, 400f, barY + 20f, "❄️ 冰凍", world.freezeRemainingUses, world.freezeTimer > 0f)
-        drawItemButton(canvas, 630f, barY + 20f, "💣 炸藥", world.bombRemainingUses, active = false)
-        drawItemButton(canvas, 860f, barY + 20f, "⚡ 雙倍", world.doubleDamageRemainingUses, world.doubleDamageTimer > 0f)
+        // 右側凹槽框架與 3 格銀邊道具卡
+        buttonPaint.color = Color.rgb(28, 30, 42)
+        tempRect.set(250f, barY + 16f, 830f, barY + 210f)
+        canvas.drawRect(tempRect, buttonPaint)
+
+        drawItemCard(canvas, 276f, barY + 30f, "❄️", world.freezeRemainingUses, world.freezeTimer > 0f)
+        drawItemCard(canvas, 466f, barY + 30f, "🧨", world.bombRemainingUses, active = false)
+        drawItemCard(canvas, 656f, barY + 30f, "x2", world.doubleDamageRemainingUses, world.doubleDamageTimer > 0f)
     }
 
-    private fun drawSpeedButton(canvas: Canvas, x: Float, y: Float, label: String, selected: Boolean, unlocked: Boolean) {
-        tempRect.set(x, y, x + 76f, y + 80f)
-        buttonPaint.color = if (selected) Color.rgb(56, 189, 248) else if (unlocked) Color.rgb(30, 41, 59) else Color.rgb(15, 23, 42)
-        canvas.drawRoundRect(tempRect, 10f, 10f, buttonPaint)
+    private fun drawItemCard(canvas: Canvas, x: Float, y: Float, iconText: String, uses: Int, active: Boolean) {
+        tempRect.set(x, y, x + 150f, y + 160f)
+        buttonPaint.color = if (active) Color.rgb(245, 158, 11) else Color.rgb(108, 118, 137)
+        canvas.drawRoundRect(tempRect, 8f, 8f, buttonPaint)
 
-        hudTextPaint.textSize = 28f
-        hudTextPaint.color = if (selected) Color.rgb(15, 23, 42) else if (unlocked) Color.WHITE else Color.rgb(100, 116, 139)
-        canvas.drawText(label, x + 18f, y + 50f, hudTextPaint)
-        hudTextPaint.textSize = 34f
-    }
+        hudTextPaint.textAlign = Paint.Align.CENTER
+        hudTextPaint.textSize = 48f
+        hudTextPaint.color = if (iconText == "x2") Color.rgb(254, 240, 138) else Color.WHITE
+        canvas.drawText(iconText, x + 75f, y + 88f, hudTextPaint)
 
-    private fun drawItemButton(canvas: Canvas, x: Float, y: Float, name: String, uses: Int, active: Boolean) {
-        tempRect.set(x, y, x + 190f, y + 100f)
-        buttonPaint.color = if (active) Color.rgb(245, 158, 11) else if (uses > 0) Color.rgb(30, 41, 59) else Color.rgb(15, 23, 42)
-        canvas.drawRoundRect(tempRect, 14f, 14f, buttonPaint)
-
-        hudTextPaint.textSize = 28f
-        hudTextPaint.color = if (uses > 0) Color.WHITE else Color.rgb(100, 116, 139)
-        canvas.drawText(name, x + 24f, y + 46f, hudTextPaint)
-
-        subTextPaint.color = Color.rgb(148, 163, 184)
-        canvas.drawText("剩餘: $uses", x + 44f, y + 82f, subTextPaint)
-        hudTextPaint.textSize = 34f
+        val countStr = "x$uses"
+        outlineTextPaint.textAlign = Paint.Align.CENTER
+        outlineTextPaint.textSize = 32f
+        hudTextPaint.textSize = 32f
+        hudTextPaint.color = Color.WHITE
+        canvas.drawText(countStr, x + 75f, y + 148f, outlineTextPaint)
+        canvas.drawText(countStr, x + 75f, y + 148f, hudTextPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -222,38 +270,35 @@ class GameView(
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                if (virtX in 920f..1060f && virtY in 20f..110f) {
+                if (virtX in 930f..1060f && virtY in 35f..160f) {
                     onPauseClicked?.invoke()
                     return true
                 }
 
-                if (virtY in 2180f..2280f) {
-                    if (virtX in 40f..120f) {
-                        gameLoop?.gameSpeedMultiplier = 1.0f
-                        return true
-                    } else if (virtX in 130f..210f) {
-                        if (dataManager.is2xUnlocked()) {
-                            gameLoop?.gameSpeedMultiplier = 2.0f
-                        } else {
-                            onSpeedUnlockNeeded?.invoke(2, GameConfig.UNLOCK_2X_COST)
-                        }
-                        return true
-                    } else if (virtX in 220f..300f) {
-                        if (dataManager.is5xUnlocked()) {
-                            gameLoop?.gameSpeedMultiplier = 5.0f
-                        } else {
-                            onSpeedUnlockNeeded?.invoke(5, GameConfig.UNLOCK_5X_COST)
+                if (virtY >= 2110f) {
+                    if (virtX in 30f..200f) {
+                        val currentSpeed = (gameLoop?.gameSpeedMultiplier ?: 1f).toInt()
+                        when (currentSpeed) {
+                            1 -> {
+                                if (dataManager.is2xUnlocked()) gameLoop?.gameSpeedMultiplier = 2.0f
+                                else onSpeedUnlockNeeded?.invoke(2, GameConfig.UNLOCK_2X_COST)
+                            }
+                            2 -> {
+                                if (dataManager.is5xUnlocked()) gameLoop?.gameSpeedMultiplier = 5.0f
+                                else gameLoop?.gameSpeedMultiplier = 1.0f
+                            }
+                            else -> gameLoop?.gameSpeedMultiplier = 1.0f
                         }
                         return true
                     }
 
-                    if (virtX in 400f..590f) {
+                    if (virtX in 270f..435f) {
                         world.useFreezeItem()
                         return true
-                    } else if (virtX in 630f..820f) {
+                    } else if (virtX in 460f..625f) {
                         world.useBombItem()
                         return true
-                    } else if (virtX in 860f..1050f) {
+                    } else if (virtX in 650f..815f) {
                         world.useDoubleDamageItem()
                         return true
                     }

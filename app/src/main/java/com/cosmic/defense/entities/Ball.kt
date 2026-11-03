@@ -88,8 +88,8 @@ class Ball {
             clampAngle()
         }
 
-        if (y - GameConfig.BALL_RADIUS <= 220f) {
-            y = 220f + GameConfig.BALL_RADIUS
+        if (y - GameConfig.BALL_RADIUS <= GameConfig.TOP_WALL_Y) {
+            y = GameConfig.TOP_WALL_Y + GameConfig.BALL_RADIUS
             vy = -vy
             bounceCount++
             clampAngle()
