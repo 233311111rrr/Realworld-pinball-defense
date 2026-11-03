@@ -46,8 +46,9 @@ class LaserCannon(val slotIndex: Int) {
             firingTimer = 0.22f
 
             val beamHalfWidth = 24f
-            for (m in monsters) {
-                if (m.active && Math.abs(m.x - x) <= (m.radius + beamHalfWidth)) {
+            for (idx in 0 until monsters.size) {
+                val m = monsters.getOrNull(idx) ?: continue
+                if (m.active && m.pathProgress >= 0f && Math.abs(m.x - x) <= (m.radius + beamHalfWidth)) {
                     m.takeDamage(damage)
                 }
             }

@@ -2,8 +2,12 @@ package com.cosmic.defense.ui
 
 import android.annotation.SuppressLint
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.Display
 import android.view.View
 import android.view.WindowInsets
@@ -11,6 +15,7 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -29,42 +34,57 @@ class GameActivity : AppCompatActivity() {
     private lateinit var gameView: GameView
 
     private var activeLotteryCards: List<SkillCard> = emptyList()
+    private var isShowingErrorDialog: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        hideSystemUI()
+        try {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        dataManager = DataManager(this)
-        audioManager = AudioManager(this, dataManager)
-        skillManager = SkillManager(dataManager)
+            dataManager = DataManager(this)
+            audioManager = AudioManager(this, dataManager)
+            skillManager = SkillManager(dataManager)
 
-        applyTargetDisplayFps(dataManager.getTargetFps())
+            gameView = GameView(this, dataManager, audioManager, skillManager)
+            // 關鍵修正：必須先呼叫 setContentView(gameView) 完成 AppCompat DecorView 初始化，
+            // 之後才能呼叫 hideSystemUI() 取得 window.insetsController，避免 Android 11+ 拋出
+            // AndroidRuntimeException: requestFeature() must be called before adding content
+            setContentView(gameView)
 
-        gameView = GameView(this, dataManager, audioManager, skillManager)
-        setContentView(gameView)
+            window.decorView.post {
+                hideSystemUI()
+                applyTargetDisplayFps(dataManager.getTargetFps())
+            }
 
-        setupGameCallbacks()
+            setupGameCallbacks()
+        } catch (t: Throwable) {
+            Log.e("GameActivity", "Error during GameActivity initialization", t)
+            showDiagnosticErrorDialog("遊戲啟動初始化異常", t)
+        }
     }
 
     private fun hideSystemUI() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.let { controller ->
-                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-                controller.systemBarsBehavior =
-                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.insetsController?.let { controller ->
+                    controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                    controller.systemBarsBehavior =
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = (
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                or View.SYSTEM_UI_FLAG_FULLSCREEN
+                                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        )
             }
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = (
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            or View.SYSTEM_UI_FLAG_FULLSCREEN
-                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    )
+        } catch (e: Throwable) {
+            Log.w("GameActivity", "hideSystemUI ignored", e)
         }
     }
 
@@ -95,7 +115,7 @@ class GameActivity : AppCompatActivity() {
                     params.preferredDisplayModeId = it.modeId
                     window.attributes = params
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 e.printStackTrace()
             }
         }
@@ -110,6 +130,12 @@ class GameActivity : AppCompatActivity() {
             runOnUiThread { showSpeedUnlockDialog(speed, cost) }
         }
 
+        gameView.onLoopError = { throwable ->
+            runOnUiThread {
+                showDiagnosticErrorDialog("遊戲運行期間發生異常", throwable)
+            }
+        }
+
         gameView.world.onTriggerLottery = {
             runOnUiThread { checkAndShowNextLottery() }
         }
@@ -121,6 +147,50 @@ class GameActivity : AppCompatActivity() {
         gameView.world.onGameOver = {
             runOnUiThread { showGameOverDialog() }
         }
+    }
+
+    private fun showDiagnosticErrorDialog(title: String, throwable: Throwable) {
+        if (isFinishing || isDestroyed || isShowingErrorDialog) return
+        isShowingErrorDialog = true
+
+        val stackTraceText = Log.getStackTraceString(throwable).ifBlank {
+            "${throwable::class.java.name}: ${throwable.message}"
+        }
+
+        val scrollView = ScrollView(this).apply {
+            setPadding(36, 24, 36, 24)
+        }
+        val tvError = TextView(this).apply {
+            text = stackTraceText
+            textSize = 11f
+            setTextColor(android.graphics.Color.rgb(254, 202, 202))
+            setBackgroundColor(android.graphics.Color.rgb(15, 23, 42))
+            setPadding(24, 24, 24, 24)
+            setTextIsSelectable(true)
+        }
+        scrollView.addView(tvError)
+
+        AlertDialog.Builder(this)
+            .setTitle("⚠️ $title")
+            .setView(scrollView)
+            .setPositiveButton("複製錯誤並返回主選單") { _, _ ->
+                try {
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("CosmicDefenseError", stackTraceText))
+                    Toast.makeText(this, "已複製錯誤訊息至剪貼簿", Toast.LENGTH_SHORT).show()
+                } catch (_: Throwable) {
+                }
+                isShowingErrorDialog = false
+                finish()
+            }
+            .setNegativeButton("嘗試繼續") { _, _ ->
+                isShowingErrorDialog = false
+                if (::gameView.isInitialized) {
+                    gameView.gameLoop?.isPaused = false
+                }
+            }
+            .setCancelable(false)
+            .show()
     }
 
     private fun checkAndShowNextLottery() {
@@ -289,7 +359,9 @@ class GameActivity : AppCompatActivity() {
                     "剩餘復活次數: $remainingRevives 次\n" +
                     "目前持有: $coins 金幣 / $tickets 張復活券")
             .setPositiveButton(if (canUseTicket) "使用復活券 (剩 $tickets 張)" else "花費 300 金幣") { _, _ ->
-                val success = gameView.world.performRevive(useTicket = canUseTicket)
+                val success = synchronized(gameView.worldLock) {
+                    gameView.world.performRevive(useTicket = canUseTicket)
+                }
                 if (success) {
                     gameView.gameLoop?.isPaused = false
                     hideSystemUI()
@@ -327,7 +399,9 @@ class GameActivity : AppCompatActivity() {
             .setTitle("🏆 戰役結算")
             .setMessage(msg)
             .setPositiveButton("再來一局") { _, _ ->
-                gameView.world.resetGame()
+                synchronized(gameView.worldLock) {
+                    gameView.world.resetGame()
+                }
                 gameView.gameLoop?.isPaused = false
                 hideSystemUI()
             }
@@ -384,16 +458,27 @@ class GameActivity : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        showPauseDialog()
+        if (::gameView.isInitialized) {
+            showPauseDialog()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        hideSystemUI()
+        if (::gameView.isInitialized) {
+            window.decorView.post { hideSystemUI() }
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        audioManager.release()
+        if (::gameView.isInitialized) {
+            gameView.stopGameLoopSafely()
+        }
+        if (::audioManager.isInitialized) {
+            audioManager.release()
+        }
     }
 }

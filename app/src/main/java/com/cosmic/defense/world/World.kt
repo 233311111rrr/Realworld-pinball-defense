@@ -187,9 +187,14 @@ class World(
 
     private fun checkBallMonsterCollisions() {
         val activeBalls = ballPool.getActiveBalls()
+        val monsters = snakeGrid.monsters
 
-        for (ball in activeBalls) {
-            for (m in snakeGrid.monsters) {
+        for (ballIdx in 0 until activeBalls.size) {
+            val ball = activeBalls.getOrNull(ballIdx) ?: continue
+            if (!ball.active) continue
+
+            for (mIdx in 0 until monsters.size) {
+                val m = monsters.getOrNull(mIdx) ?: continue
                 if (!m.active || m.pathProgress < 0) continue
 
                 val dx = ball.x - m.x
@@ -254,7 +259,15 @@ class World(
             missileLockingTimer = 0f
             lockedTargets.clear()
 
-            val candidates = snakeGrid.monsters.filter { it.active && it.pathProgress >= 0 }
+            val activeSnapshot = mutableListOf<Monster>()
+            val monsters = snakeGrid.monsters
+            for (idx in 0 until monsters.size) {
+                val m = monsters.getOrNull(idx) ?: continue
+                if (m.active && m.pathProgress >= 0) {
+                    activeSnapshot.add(m)
+                }
+            }
+            val candidates = activeSnapshot
                 .sortedByDescending { it.pathProgress }
                 .take(GameConfig.MISSILE_LOCK_COUNT)
 
@@ -315,7 +328,9 @@ class World(
         audioManager.playExplode()
 
         val dmg = GameConfig.ITEM_BOMB_DAMAGE * (if (doubleDamageTimer > 0f) 2f else 1f)
-        for (m in snakeGrid.monsters) {
+        val monsters = snakeGrid.monsters
+        for (idx in 0 until monsters.size) {
+            val m = monsters.getOrNull(idx) ?: continue
             if (m.active && m.pathProgress >= 0) {
                 val isDead = m.takeDamage(dmg)
                 spawnDamageText(m.x, m.y, dmg, isCrit = true)

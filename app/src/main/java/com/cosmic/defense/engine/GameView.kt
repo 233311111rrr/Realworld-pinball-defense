@@ -22,6 +22,7 @@ class GameView(
     val skillManager: SkillManager
 ) : SurfaceView(context), SurfaceHolder.Callback {
 
+    val worldLock = Any()
     val world = World(dataManager, audioManager, skillManager)
     var gameLoop: GameLoop? = null
 
@@ -65,6 +66,7 @@ class GameView(
 
     var onPauseClicked: (() -> Unit)? = null
     var onSpeedUnlockNeeded: ((speed: Int, cost: Int) -> Unit)? = null
+    var onLoopError: ((Throwable) -> Unit)? = null
 
     init {
         holder.addCallback(this)
@@ -73,6 +75,7 @@ class GameView(
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
+        stopGameLoopSafely()
         gameLoop = GameLoop(holder, this).apply {
             isRunning = true
             start()
@@ -80,6 +83,7 @@ class GameView(
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
         val aspectScreen = width.toFloat() / height.toFloat()
         val aspectVirtual = GameConfig.LOGICAL_WIDTH / GameConfig.LOGICAL_HEIGHT
 
@@ -97,51 +101,58 @@ class GameView(
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        var retry = true
-        gameLoop?.isRunning = false
-        while (retry) {
-            try {
-                gameLoop?.join()
-                retry = false
-            } catch (e: InterruptedException) {
-            }
+        stopGameLoopSafely()
+    }
+
+    fun stopGameLoopSafely() {
+        val loop = gameLoop ?: return
+        loop.isRunning = false
+        try {
+            loop.join(600)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
         }
+        gameLoop = null
     }
 
     fun fixedUpdate(dt: Float) {
-        animTime += dt
+        synchronized(worldLock) {
+            animTime += dt
 
-        for (i in 0 until starCount) {
-            starY[i] += starSpeed[i] * dt
-            if (starY[i] > GameConfig.LOGICAL_HEIGHT) {
-                starY[i] = 0f
-                starX[i] = Random.nextFloat() * GameConfig.LOGICAL_WIDTH
+            for (i in 0 until starCount) {
+                starY[i] += starSpeed[i] * dt
+                if (starY[i] > GameConfig.LOGICAL_HEIGHT) {
+                    starY[i] = 0f
+                    starX[i] = Random.nextFloat() * GameConfig.LOGICAL_WIDTH
+                }
             }
-        }
 
-        world.update(dt)
+            world.update(dt)
+        }
     }
 
     fun render(canvas: Canvas) {
-        canvas.drawColor(Color.BLACK)
+        synchronized(worldLock) {
+            canvas.drawColor(Color.BLACK)
 
-        canvas.save()
-        canvas.translate(offsetX, offsetY)
-        canvas.scale(scaleXFactor, scaleYFactor)
+            canvas.save()
+            canvas.translate(offsetX, offsetY)
+            canvas.scale(scaleXFactor, scaleYFactor)
 
-        // 155552 紫藍星雲深空底色
-        canvas.drawColor(Color.rgb(30, 25, 54))
-        for (i in 0 until starCount) {
-            val alpha = (130 + Math.sin((animTime * 3f + i).toDouble()).toFloat() * 90).toInt().coerceIn(45, 245)
-            starPaint.alpha = alpha
-            canvas.drawCircle(starX[i], starY[i], starRadius[i], starPaint)
+            // 155552 紫藍星雲深空底色
+            canvas.drawColor(Color.rgb(30, 25, 54))
+            for (i in 0 until starCount) {
+                val alpha = (130 + Math.sin((animTime * 3f + i).toDouble()).toFloat() * 90).toInt().coerceIn(45, 245)
+                starPaint.alpha = alpha
+                canvas.drawCircle(starX[i], starY[i], starRadius[i], starPaint)
+            }
+
+            world.draw(canvas, animTime)
+            drawTopHud(canvas)
+            drawBottomBar(canvas)
+
+            canvas.restore()
         }
-
-        world.draw(canvas, animTime)
-        drawTopHud(canvas)
-        drawBottomBar(canvas)
-
-        canvas.restore()
     }
 
     private fun drawTopHud(canvas: Canvas) {
@@ -293,29 +304,35 @@ class GameView(
                     }
 
                     if (virtX in 270f..435f) {
-                        world.useFreezeItem()
+                        synchronized(worldLock) { world.useFreezeItem() }
                         return true
                     } else if (virtX in 460f..625f) {
-                        world.useBombItem()
+                        synchronized(worldLock) { world.useBombItem() }
                         return true
                     } else if (virtX in 650f..815f) {
-                        world.useDoubleDamageItem()
+                        synchronized(worldLock) { world.useDoubleDamageItem() }
                         return true
                     }
                 }
 
-                world.isTouching = true
-                world.touchX = virtX
-                world.touchY = virtY
+                synchronized(worldLock) {
+                    world.isTouching = true
+                    world.touchX = virtX
+                    world.touchY = virtY
+                }
             }
 
             MotionEvent.ACTION_MOVE -> {
-                world.touchX = virtX
-                world.touchY = virtY
+                synchronized(worldLock) {
+                    world.touchX = virtX
+                    world.touchY = virtY
+                }
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                world.isTouching = false
+                synchronized(worldLock) {
+                    world.isTouching = false
+                }
             }
         }
         return true

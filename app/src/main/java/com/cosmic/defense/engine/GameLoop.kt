@@ -30,49 +30,57 @@ class GameLoop(
         lastFpsTimestamp = System.currentTimeMillis()
 
         while (isRunning) {
-            val now = System.nanoTime()
-            var elapsed = now - lastTime
-            lastTime = now
-
-            if (elapsed > 250_000_000L) {
-                elapsed = 250_000_000L
-            }
-
-            if (!isPaused) {
-                accumulator += (elapsed * gameSpeedMultiplier).toLong()
-
-                while (accumulator >= fixedDeltaTimeNs) {
-                    gameView.fixedUpdate(GameConfig.FIXED_DELTA_TIME)
-                    accumulator -= fixedDeltaTimeNs
-                }
-            }
-
-            var canvas: Canvas? = null
             try {
-                canvas = surfaceHolder.lockCanvas()
-                if (canvas != null) {
-                    synchronized(surfaceHolder) {
-                        gameView.render(canvas)
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                if (canvas != null) {
-                    try {
-                        surfaceHolder.unlockCanvasAndPost(canvas)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-            }
+                val now = System.nanoTime()
+                var elapsed = now - lastTime
+                lastTime = now
 
-            frameCount++
-            val curTimeMs = System.currentTimeMillis()
-            if (curTimeMs - lastFpsTimestamp >= 1000L) {
-                currentFps = frameCount
-                frameCount = 0
-                lastFpsTimestamp = curTimeMs
+                if (elapsed > 250_000_000L) {
+                    elapsed = 250_000_000L
+                }
+
+                if (!isPaused) {
+                    accumulator += (elapsed * gameSpeedMultiplier).toLong()
+
+                    while (accumulator >= fixedDeltaTimeNs) {
+                        gameView.fixedUpdate(GameConfig.FIXED_DELTA_TIME)
+                        accumulator -= fixedDeltaTimeNs
+                    }
+                }
+
+                if (surfaceHolder.surface.isValid) {
+                    var canvas: Canvas? = null
+                    try {
+                        canvas = surfaceHolder.lockCanvas()
+                        if (canvas != null) {
+                            synchronized(surfaceHolder) {
+                                gameView.render(canvas)
+                            }
+                        }
+                    } catch (e: Throwable) {
+                        e.printStackTrace()
+                    } finally {
+                        if (canvas != null) {
+                            try {
+                                surfaceHolder.unlockCanvasAndPost(canvas)
+                            } catch (e: Throwable) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+                }
+
+                frameCount++
+                val curTimeMs = System.currentTimeMillis()
+                if (curTimeMs - lastFpsTimestamp >= 1000L) {
+                    currentFps = frameCount
+                    frameCount = 0
+                    lastFpsTimestamp = curTimeMs
+                }
+            } catch (t: Throwable) {
+                t.printStackTrace()
+                isPaused = true
+                gameView.onLoopError?.invoke(t)
             }
         }
     }

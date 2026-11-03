@@ -11,26 +11,34 @@ import com.cosmic.defense.data.DataManager
 
 class AudioManager(private val context: Context, private val dataManager: DataManager) {
 
-    private val soundPool: SoundPool
+    private val soundPool: SoundPool?
     private val vibrator: Vibrator?
 
     init {
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_GAME)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
+        soundPool = try {
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
 
-        soundPool = SoundPool.Builder()
-            .setMaxStreams(8)
-            .setAudioAttributes(audioAttributes)
-            .build()
+            SoundPool.Builder()
+                .setMaxStreams(8)
+                .setAudioAttributes(audioAttributes)
+                .build()
+        } catch (e: Throwable) {
+            null
+        }
 
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-            vm?.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        vibrator = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vm?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+        } catch (e: Throwable) {
+            null
         }
     }
 
@@ -41,16 +49,24 @@ class AudioManager(private val context: Context, private val dataManager: DataMa
     fun playChestOpen() { vibrate(60) }
 
     fun vibrate(durationMs: Long) {
-        if (!dataManager.isVibrateEnabled() || vibrator == null || !vibrator.hasVibrator()) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(durationMs)
+        try {
+            if (!dataManager.isVibrateEnabled() || vibrator == null || !vibrator.hasVibrator()) return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(durationMs)
+            }
+        } catch (e: Throwable) {
+            // 忽略特定機型震動權限或硬體異常
         }
     }
 
     fun release() {
-        soundPool.release()
+        try {
+            soundPool?.release()
+        } catch (e: Throwable) {
+            // 忽略釋放異常
+        }
     }
 }

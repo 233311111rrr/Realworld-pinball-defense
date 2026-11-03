@@ -62,7 +62,105 @@ jobs:
           if-no-files-found: error
           retention-days: 30`;
 
+const README_MD_CONTENT = `# 🪐 太空彈球防衛戰 | Cosmic Ball Defense
+
+![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web%20Preview-3DDC84?logo=android&logoColor=white)
+![Android API](https://img.shields.io/badge/Android%20API-24%20--%2034-00E5FF)
+![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-7F52FF?logo=kotlin&logoColor=white)
+![Gradle](https://img.shields.io/badge/AGP-8.4.1%20%7C%20Gradle%208.7-02303A?logo=gradle&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Auto%20APK%20(Node%2024)-2088FF?logo=githubactions&logoColor=white)
+![License](https://img.shields.io/badge/Assets%20License-CC0%201.0-brightgreen)
+
+> **一款結合「10 排緊湊貪食蛇行軍」、「物理彈球連射」、「追蹤導彈與雷射塔防」以及「Roguelite 寶箱三選一強化」的直向太空街機防禦遊戲。**  
+> **A vertical space arcade defense game combining a 10-row compact snake-march grid, physics ball ricochets, homing missiles & laser turrets, and Roguelite 3-pick-1 chest upgrades.**
+
+---
+
+## 🎮 遊戲特色與核心玩法機制 | Game Features & Core Mechanics
+
+### 1. 緊湊型 10 排貪食蛇行軍陣列 (Compact 10-Row Snake-March Grid)
+- **Z 字型緊湊推進 (S-Curve Marching Path)**：怪物從畫面**右上角 (Row 0)** 生成並向左行進，每排固定容納 \`15\` 隻怪物，總共 \`10\` 排（偶數排 \`0, 2, 4, 6, 8\` 向左、奇數排 \`1, 3, 5, 7, 9\` 向右），終點位於第 9 排右下角防禦底線。
+- **清空過半加速補位 (Half-Cleared Speed Catch-Up)**：當第 0 排（最頂排）怪物被消滅超過一半（剩餘 \`< 8\` 隻）時，後方生成的怪物隊列會觸發 **3.0 倍速 (\`3.0x\`) 追趕機制**，直到新生成的怪群推進至第 1 排中央才會恢復正常行軍速度並開啟下一波生成。
+- **防線失守與復活機制 (Defense Breach & Revive System)**：一旦任何一隻怪物抵達第 9 排右下角終點，即判定防線失守。玩家可消耗 **復活券 (Revive Ticket)** 立即清空前線威脅並繼續挑戰。
+
+### 2. 三大複合武器系統 (Three Core Weapon Systems)
+| 武器系統 (Weapon System) | 運作機制 (Mechanics - ZH) | Mechanics (EN) |
+| :--- | :--- | :--- |
+| **🔵 主砲彈球 (Main Ball Cannon)** | 按住或拖曳瞄準線後連發高彈性物理彈球，在怪群與牆壁間高速反彈；支援數量擴充與傷害倍增。 | Fires physics-based ricocheting balls along your aiming trajectory; upgradable ball count and damage multiplier. |
+| **🚀 追蹤導彈 (Homing Missiles)** | 獨立冷卻 (\`2.5s\`) 自動發射，具備平滑轉向演算法 (\`TURN_SPEED = 4.5\`)，自動鎖定場上距離最近的前 5 名高威脅目標。 | Independent \`2.5s\` cooldown auto-launcher with smooth steering that locks onto the 5 nearest high-priority targets. |
+| **⚡ 雷射砲台 (Laser Cannons)** | 底部左、右兩側共配置 4 座雷射塔槽位，解鎖後每 \`3.0s\` 針對一直線路徑發射高能貫穿雷射光束。 | 4 turret slots on the bottom-left and bottom-right flanks firing piercing high-energy beams every \`3.0s\`. |
+
+### 3. Roguelite 寶箱三選一強化 (Roguelite 3-Pick-1 Chest Upgrades)
+擊破行軍隊列中的 **隨機寶箱 (Chest)** 後，遊戲將暫停並彈出 **三選一強化輪盤 (3-Pick-1 Skill Lottery)**：
+1. **➕ 主砲彈球 +15 顆 (Main Ball Count +15)**
+2. **💥 主砲傷害 +30% (Main Ball Damage +30%)**
+3. **🚀 解鎖/強化追蹤導彈 (Unlock / Upgrade Homing Missiles - DMG +50%)**
+4. **⚡ 建造/強化雷射砲台 (Build up to 4 Laser Turrets / Upgrade DMG +50%)**
+
+---
+
+## 📦 GitHub Actions 自動打包 APK 下載教學 | Automated APK Build & Download Guide
+
+1. **推送程式碼至 GitHub | Push Repository to GitHub**
+   \`\`\`bash
+   git init
+   git add .
+   git commit -m "Initial commit: Cosmic Ball Defense (Android + Web)"
+   git branch -M main
+   git remote add origin https://github.com/<你的帳號>/<你的儲存庫名稱>.git
+   git push -u origin main
+   \`\`\`
+2. **觸發雲端自動打包 | Trigger GitHub Actions Build**
+   - 推送至 \`main\` 或 \`master\` 分支即自動開始編譯；或進入 GitHub **「Actions」** ➔ **「Build Android APK」** ➔ 點擊 **「Run workflow」**。
+3. **下載並安裝 APK | Download & Install APK**
+   - 等待工作流程顯示綠色勾勾 ✅（約 1～2 分鐘），滑到頁面最下方 **「Artifacts」** 下載 **\`CosmicBallDefense-debug-apk\`**，解壓縮即可取得 \`app-debug.apk\` 安裝至手機！
+
+---
+
+## ⚖️ 數值設定總覽 | Game Balance & Parameters Overview (\`GameConfig.kt\`)
+
+| 參數類別 (Category) | 常數名稱 (Constant) | 設定數值 (Value) | 說明 (Description) |
+| :--- | :--- | :--- | :--- |
+| **畫布與幀率 (Canvas)** | \`VIRTUAL_WIDTH\` × \`HEIGHT\` | \`1080\` × \`2400\` | 9:20 自適應直向畫布 (支援 30~185Hz 刷新率) |
+| **貪食蛇路徑 (Snake Grid)** | \`SNAKE_TOTAL_ROWS\` / \`MONSTERS_PER_ROW\` | \`10\` 排 / \`15\` 隻 | 共 150 格位，右上角進場、右下角終點 |
+| **追趕加速 (Catch-Up)** | \`SNAKE_CATCHUP_MULTIPLIER\` | \`3.0x\` | Row 0 清空過半時觸發 3 倍速推進至 Row 1 中央 |
+| **血量成長率 (HP Growth)** | \`MONSTER_HP_ROW_GROWTH_RATE\` | \`+15%\` / 排 | 初始血量 \`100\`，每排指數成長 \`1.15^row\` |
+| **魔王與寶箱 (Boss & Chest)** | \`BOSS_HP_MULTIPLIER\` / \`CHEST_SPAWN_CHANCE\` | \`10x\` / \`3%\` | 每 10 排生成 10 倍血量魔王；每格 3% 機率生成寶箱 |
+
+---
+
+## 📝 版本更新日誌 | Version Changelog
+
+- **\`v1.3.0\` (Latest)**：修復 Android 11+ (API 30–34) 點擊開始遊戲時 \`DecorView\` 初始化順序導致的閃退 (\`requestFeature() must be called before adding content\`)、新增跨執行緒 \`worldLock\` 安全鎖與無 Iterator 索引走訪、加入錯誤攔截診斷視窗，並升級 GitHub Actions Node 24。
+- **\`v1.2.0\`**：怪物每排血量成長調升至 \`+15%\` 指數成長；寶箱生成機率調整為 \`3%\`（平均 2~3 排出現 1 個）。
+- **\`v1.1.0\`**：重構為緊湊 10 排貪食蛇路徑與 Row 0 清空過半 \`3.0x\` 追趕機制。`;
+
 const ANDROID_FILES: AndroidFileItem[] = [
+  {
+    name: 'README.md (GitHub 中英雙語說明文件)',
+    path: 'README.md',
+    desc: '專為推送至 GitHub 設計的中英雙語專案說明文件（含自動打包 APK 教學、玩法架構與更新日誌）',
+    language: 'markdown',
+    snippet: README_MD_CONTENT,
+  },
+  {
+    name: 'GameActivity.kt (已修復點擊開始閃退)',
+    path: 'app/src/main/java/com/cosmic/defense/ui/GameActivity.kt',
+    desc: '修正 setContentView(gameView) 與 hideSystemUI() 呼叫順序，解決 Android 11+ DecorView requestFeature 閃退，並加入錯誤攔截診斷彈窗',
+    language: 'kotlin',
+  },
+  {
+    name: 'GameView.kt & GameLoop.kt (執行緒安全鎖)',
+    path: 'app/src/main/java/com/cosmic/defense/engine/GameView.kt',
+    desc: '新增 worldLock 同步鎖、surface.isValid 檢查與異常攔截回報，防止跨執行緒 ConcurrentModificationException',
+    language: 'kotlin',
+  },
+  {
+    name: 'SnakeGrid.kt & World.kt (安全索引走訪)',
+    path: 'app/src/main/java/com/cosmic/defense/world/SnakeGrid.kt',
+    desc: '改用無 Iterator 之安全索引迴圈與死亡怪物清理機制，並套用每排 +15% 血量與 3% 寶箱率',
+    language: 'kotlin',
+  },
   {
     name: 'build.yml (GitHub Actions 已修復)',
     path: '.github/workflows/build.yml',
@@ -71,45 +169,27 @@ const ANDROID_FILES: AndroidFileItem[] = [
     snippet: BUILD_YML_CONTENT,
   },
   {
-    name: 'MainActivity.kt (已修復編譯錯誤)',
+    name: 'MainActivity.kt (已加入防呆攔截)',
     path: 'app/src/main/java/com/cosmic/defense/ui/MainActivity.kt',
-    desc: '修正 TextView.paint.isFakeBoldText = true，解決 compileDebugKotlin Exit Code 1',
+    desc: '點擊「開始防禦戰鬥」加入異常攔截保護與診斷彈窗，以及 TextView.paint.isFakeBoldText 修正',
     language: 'kotlin',
   },
   {
-    name: 'SettingsActivity.kt (已修復編譯錯誤)',
+    name: 'AudioManager.kt (音效與震動防呆)',
+    path: 'app/src/main/java/com/cosmic/defense/audio/AudioManager.kt',
+    desc: '為 SoundPool 與 Vibrator 加入完整 try-catch 保護，防止特定機型震動服務異常',
+    language: 'kotlin',
+  },
+  {
+    name: 'SettingsActivity.kt (30~185Hz 刷新率)',
     path: 'app/src/main/java/com/cosmic/defense/ui/SettingsActivity.kt',
     desc: '修正 TextView.paint.isFakeBoldText = true 與 30~185Hz 螢幕刷新率切換',
-    language: 'kotlin',
-  },
-  {
-    name: 'AboutActivity.kt (已修復編譯錯誤)',
-    path: 'app/src/main/java/com/cosmic/defense/ui/AboutActivity.kt',
-    desc: '修正 TextView.paint.isFakeBoldText = true 與 CC0 素材授權聲明',
-    language: 'kotlin',
-  },
-  {
-    name: 'World.kt (RaycastHit 安全結構)',
-    path: 'app/src/main/java/com/cosmic/defense/world/World.kt',
-    desc: '改用 data class RaycastHit 取代 FloatArray 解構，並實作雙瓶火箭戰機渲染',
     language: 'kotlin',
   },
   {
     name: 'Monster.kt (155552 厚黑描邊卡通怪)',
     path: 'app/src/main/java/com/cosmic/defense/entities/Monster.kt',
     desc: '石像鬼幼蟲、粉紅紫殼章魚、紫金皇家寶箱與頭頂厚黑邊 K/M 血量渲染',
-    language: 'kotlin',
-  },
-  {
-    name: 'SnakeGrid.kt (10 排緊湊蛇形陣列)',
-    path: 'app/src/main/java/com/cosmic/defense/world/SnakeGrid.kt',
-    desc: '10 排緊湊蛇形路線、右上角依序往左進場、右下角終點與第 1 排半數急行軍機制',
-    language: 'kotlin',
-  },
-  {
-    name: 'GameView.kt (155552 灰紫金屬 HUD)',
-    path: 'app/src/main/java/com/cosmic/defense/engine/GameView.kt',
-    desc: '灰紫金屬頂欄、金幣戰機徽章、皇冠最佳紀錄與底部內凹三格銀框道具匣',
     language: 'kotlin',
   },
   {
@@ -121,7 +201,7 @@ const ANDROID_FILES: AndroidFileItem[] = [
   {
     name: 'GameConfig.kt',
     path: 'app/src/main/java/com/cosmic/defense/config/GameConfig.kt',
-    desc: '全局數值集中管理（含各項物理單位與用途註解）',
+    desc: '全局數值集中管理（含每排 +15% 血量成長與 3% 寶箱生成機率）',
     language: 'kotlin',
   },
 ];
@@ -146,10 +226,9 @@ export const AndroidProjectExplorer: React.FC<AndroidProjectExplorerProps> = ({ 
         <div className="flex items-center gap-3">
           <Terminal className="w-6 h-6 text-[#FFE838]" />
           <div>
-            <h2 className="text-base font-black text-white">Android 原生工程 & GitHub Actions 構建修復中心</h2>
+            <h2 className="text-base font-black text-white">Android 原生工程 & 閃退修復中心</h2>
             <p className="text-xs text-slate-300">
-              已徹底排除 <code className="text-rose-300">Process completed with exit code 1</code>、
-              <code className="text-amber-300">setup-java v4</code> 與 <code className="text-amber-300">Node.js 20</code> 警告
+              已徹底排除 <code className="text-rose-300">點擊開始閃退 (requestFeature before setContentView)</code> 與執行緒競爭問題
             </p>
           </div>
         </div>
@@ -168,20 +247,20 @@ export const AndroidProjectExplorer: React.FC<AndroidProjectExplorerProps> = ({ 
       <div className="mb-4 bg-emerald-950/40 border-2 border-emerald-700/60 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2 text-emerald-300 font-black text-sm">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>本次修復的 3 大 GitHub Actions 錯誤與警告：</span>
+          <span>本次修復的 Android 實機閃退根因與防護機制：</span>
         </div>
         <ul className="list-disc list-inside text-xs text-slate-200 space-y-1.5 leading-relaxed">
           <li>
-            <strong>修復 Exit Code 1 (Kotlin 編譯失敗)：</strong>
-            先前在 <code>MainActivity.kt</code>、<code>SettingsActivity.kt</code>、<code>AboutActivity.kt</code> 中直接對 <code>TextView</code> 呼叫 <code>isFakeBoldText = true</code>（Android SDK 中該屬性屬於 <code>TextView.paint.isFakeBoldText</code>），已全部修正為 <code>paint.isFakeBoldText = true</code>。
+            <strong>修復點擊「開始防禦戰鬥」瞬間閃退 (Android 11+ DecorView 順序衝突)：</strong>
+            先前在 <code>GameActivity.onCreate()</code> 中於 <code>setContentView(gameView)</code> 之前先呼叫了 <code>hideSystemUI()</code>，導致 Android 11+ 存取 <code>window.insetsController</code> 時提前建立 <code>DecorView</code>，使後續 <code>AppCompatActivity.setContentView()</code> 拋出 <code>AndroidRuntimeException: requestFeature() must be called before adding content</code>。現已改為先執行 <code>setContentView(gameView)</code> 再透過 <code>window.decorView.post</code> 隱藏系統列。
           </li>
           <li>
-            <strong>修復 setup-java v4 與 Node.js 20 棄用警告：</strong>
-            <code>.github/workflows/build.yml</code> 已升級至 <code>actions/checkout@v5</code> 與 <code>actions/setup-java@v5</code>，並加入全域 <code>FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: &quot;true&quot;</code>。
+            <strong>新增跨執行緒同步鎖 (worldLock) 與安全索引走訪：</strong>
+            在 <code>GameView</code>、<code>GameLoop</code>、<code>World</code> 與 <code>SnakeGrid</code> 中加入 <code>synchronized(worldLock)</code> 與無 Iterator 索引迴圈，根除 UI 觸控與渲染執行緒同時讀寫怪物列表造成的 <code>ConcurrentModificationException</code>。
           </li>
           <li>
-            <strong>鎖定 compileSdk 34 穩定依賴：</strong>
-            <code>app/build.gradle.kts</code> 已固定使用與 AGP 8.4.1 / SDK 34 100% 相容的 <code>core-ktx:1.12.0</code> 與 <code>material:1.11.0</code>。
+            <strong>內建防呆異常攔截與錯誤診斷彈窗：</strong>
+            在 <code>MainActivity</code>、<code>GameActivity</code> 與 <code>GameLoop</code> 加入完整異常攔截，若特定機型發生任何未預期錯誤，將自動暫停並彈出可一鍵複製 StackTrace 的診斷視窗，不再直接黑屏閃退。
           </li>
         </ul>
       </div>
@@ -221,7 +300,7 @@ export const AndroidProjectExplorer: React.FC<AndroidProjectExplorerProps> = ({ 
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-[#2B2D3E] hover:bg-[#383B52] text-slate-200 rounded-lg cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? '已複製' : selectedFile.snippet ? '複製 YAML 內容' : '複製檔案路徑'}</span>
+              <span>{copied ? '已複製' : selectedFile.snippet ? '複製完整檔案內容' : '複製檔案路徑'}</span>
             </button>
           </div>
 

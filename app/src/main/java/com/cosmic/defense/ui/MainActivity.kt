@@ -85,7 +85,15 @@ class MainActivity : AppCompatActivity() {
             text = "🚀 開始防禦戰鬥"
             textSize = 18f
             setOnClickListener {
-                startActivity(Intent(this@MainActivity, GameActivity::class.java))
+                try {
+                    startActivity(Intent(this@MainActivity, GameActivity::class.java))
+                } catch (t: Throwable) {
+                    AlertDialog.Builder(this@MainActivity)
+                        .setTitle("⚠️ 無法啟動戰鬥畫面")
+                        .setMessage("${t::class.java.simpleName}: ${t.message}\n\n${android.util.Log.getStackTraceString(t)}")
+                        .setPositiveButton("確定", null)
+                        .show()
+                }
             }
         }
 
